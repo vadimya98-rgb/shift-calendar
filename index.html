@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#111827">
+<title>График смен</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="График смен">
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #111827;
+    color: #f3f4f6;
+    min-height: 100vh;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .app {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 12px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .app-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #f59e0b;
+    padding: 8px 0 4px;
+    text-transform: uppercase;
+  }
+  .app-subtitle {
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 4px 14px;
+  }
+  .month-title {
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: capitalize;
+    text-align: center;
+    flex: 1;
+  }
+  .nav-btn {
+    background: #1f2937;
+    border: none;
+    color: #f3f4f6;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .nav-btn:active { background: #374151; transform: scale(0.95); }
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .weekdays div {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #9ca3af;
+    padding: 4px 0;
+    text-transform: uppercase;
+  }
+  .weekdays .we { color: #f87171; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .day {
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform .1s, background .2s;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .day:active { transform: scale(0.92); }
+  .day.empty { background: transparent; border: none; pointer-events: none; }
+  .day.today { box-shadow: 0 0 0 2px #3b82f6 inset; }
+  .day.work { background: #f59e0b; color: #1f2937; border-color: #f59e0b; }
+  .day.off { background: #10b981; color: #052e1a; border-color: #10b981; }
+  .day .num { line-height: 1; }
+  .day .tag {
+    font-size: 9px;
+    font-weight: 700;
+    margin-top: 2px;
+    letter-spacing: .5px;
+    opacity: 0.85;
+  }
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 16px;
+    padding: 12px;
+    background: #1f2937;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+  .stat { text-align: center; }
+  .stat .val { font-size: 20px; font-weight: 700; display: block; }
+  .stat.work .val { color: #f59e0b; }
+  .stat.off .val { color: #10b981; }
+  .stat .lbl { font-size: 11px; color: #9ca3af; text-transform: uppercase; }
+  .summary {
+    margin-top: 10px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-radius: 14px;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+  }
+  .summary .label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+  }
+  .summary .hint {
+    font-size: 10px;
+    margin-top: 2px;
+    opacity: 0.7;
+    font-weight: 500;
+  }
+  .summary .hours {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .summary .hours small {
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 2px;
+  }
+  .shift-info {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+  .shift-info b { color: #9ca3af; }
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+  }
+  .overlay.show { display: flex; }
+  .sheet {
+    background: #1f2937;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .sheet-title {
+    text-align: center;
+    font-size: 15px;
+    color: #9ca3af;
+    margin-bottom: 16px;
+  }
+  .sheet-title b { color: #f3f4f6; font-size: 18px; }
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .opt {
+    padding: 18px 10px;
+    border-radius: 14px;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+  }
+  .opt:active { transform: scale(0.95); }
+  .opt .sub { font-size: 11px; font-weight: 500; opacity: 0.7; }
+  .opt.work { background: #f59e0b; color: #1f2937; }
+  .opt.off { background: #10b981; color: #052e1a; }
+  .opt.clear {
+    grid-column: 1 / -1;
+    background: #374151;
+    color: #d1d5db;
+    padding: 14px;
+    font-size: 14px;
+  }
+  .close-row { margin-top: 12px; text-align: center; }
+  .close-row button {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 14px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-title">График смен</div>
+  <div class="app-subtitle">учёт рабочих дней и часов</div>
+
+  <header>
+    <button class="nav-btn" id="prev">‹</button>
+    <div class="month-title" id="monthTitle"></div>
+    <button class="nav-btn" id="next">›</button>
+  </header>
+
+  <div class="weekdays">
+    <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div>
+    <div class="we">Сб</div><div class="we">Вс</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="stats">
+    <div class="stat work"><span class="val" id="countWork">0</span><span class="lbl">Рабочих</span></div>
+    <div class="stat off"><span class="val" id="countOff">0</span><span class="lbl">Выходных</span></div>
+    <div class="stat"><span class="val" id="countLeft">0</span><span class="lbl">Без метки</span></div>
+  </div>
+
+  <div class="summary">
+    <div>
+      <div class="label">Итого раб. часов</div>
+      <div class="hint">1 смена = 11 ч (9:00–20:00)</div>
+    </div>
+    <div class="hours"><span id="totalHours">0</span><small>ч</small></div>
+  </div>
+
+  <div class="shift-info">
+    Официальная смена: <b>с 9:00 до 20:00</b> без обеда
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-title" id="sheetTitle"></div>
+    <div class="options">
+      <button class="opt work" data-act="work">Раб.<span class="sub">рабочий день</span></button>
+      <button class="opt off" data-act="off">Вых.<span class="sub">выходной</span></button>
+      <button class="opt clear" data-act="clear">Убрать отметку</button>
+    </div>
+    <div class="close-row"><button id="closeBtn">Отмена</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'wb_schedule_v1';
+  var HOURS_PER_SHIFT = 11;
+  var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+  var data = {};
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { data = {}; }
+
+  var view = new Date();
+  view.setDate(1);
+  var selectedKey = null;
+
+  var grid = document.getElementById('grid');
+  var monthTitle = document.getElementById('monthTitle');
+  var overlay = document.getElementById('overlay');
+  var sheetTitle = document.getElementById('sheetTitle');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function keyFor(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
+
+  function render() {
+    var y = view.getFullYear();
+    var m = view.getMonth();
+    monthTitle.textContent = MONTHS[m] + ' ' + y;
+
+    grid.innerHTML = '';
+    var firstDay = new Date(y, m, 1);
+    var offset = (firstDay.getDay() + 6) % 7;
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+
+    var today = new Date();
+    var todayKey = keyFor(today.getFullYear(), today.getMonth(), today.getDate());
+
+    for (var i = 0; i < offset; i++) {
+      var e = document.createElement('div');
+      e.className = 'day empty';
+      grid.appendChild(e);
+    }
+
+    var work = 0, off = 0, left = 0;
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      (function (d) {
+        var key = keyFor(y, m, d);
+        var el = document.createElement('div');
+        el.className = 'day';
+
+        var status = data[key];
+        if (status === 'work') { el.classList.add('work'); work++; }
+        else if (status === 'off') { el.classList.add('off'); off++; }
+        else { left++; }
+
+        if (key === todayKey) el.classList.add('today');
+
+        var tag = status === 'work' ? 'раб.' : status === 'off' ? 'вых.' : '';
+        el.innerHTML = '<span class="num">' + d + '</span>' +
+                       (tag ? '<span class="tag">' + tag + '</span>' : '');
+
+        el.addEventListener('click', function () { openSheet(key, d); });
+        grid.appendChild(el);
+      })(d);
+    }
+
+    document.getElementById('countWork').textContent = work;
+    document.getElementById('countOff').textContent = off;
+    document.getElementById('countLeft').textContent = left;
+    document.getElementById('totalHours').textContent = work * HOURS_PER_SHIFT;
+  }
+
+  function openSheet(key, dayNum) {
+    selectedKey = key;
+    var parts = key.split('-');
+    sheetTitle.innerHTML = 'День <b>' + dayNum + '</b> — ' + MONTHS[+parts[1] - 1] + ' ' + parts[0];
+    overlay.classList.add('show');
+  }
+
+  function closeSheet() {
+    overlay.classList.remove('show');
+    selectedKey = null;
+  }
+
+  var opts = document.querySelectorAll('.opt');
+  for (var i = 0; i < opts.length; i++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        if (!selectedKey) return;
+        var act = btn.dataset.act;
+        if (act === 'clear') delete data[selectedKey];
+        else data[selectedKey] = act;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+        closeSheet();
+        render();
+      });
+    })(opts[i]);
+  }
+
+  document.getElementById('closeBtn').addEventListener('click', closeSheet);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSheet(); });
+
+  document.getElementById('prev').addEventListener('click', function () {
+    view.setMonth(view.getMonth() - 1); render();
+  });
+  document.getElementById('next').addEventListener('click', function () {
+    view.setMonth(view.getMonth() + 1); render();
+  });
+
+  var touchX = null, touchY = null;
+  document.addEventListener('touchstart', function (e) {
+    if (overlay.classList.contains('show')) return;
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX;
+    var dy = e.changedTouches[0].clientY - touchY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      view.setMonth(view.getMonth() + (dx < 0 ? 1 : -1));
+      render();
+    }
+    touchX = touchY = null;
+  });
+
+  render();
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js')
+      .then(function () { console.log('SW зарегистрирован'); })
+      .catch(function (err) { console.log('SW error:', err); });
+  });
+}
+</script>
+</body>
+</html>
